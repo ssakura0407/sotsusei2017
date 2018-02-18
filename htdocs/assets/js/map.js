@@ -30,10 +30,16 @@ function initialize() {
 
 //マップの作成
 function createMap(){
-  var glatlng = {lat: 35.13787471840729, lng: 135.903515625};
+  var glatlng = {lat: 38.13787471840729, lng: 136.903515625};
   map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 8,
-    center: glatlng
+    zoom: 5,
+    center: glatlng,
+    zoomControl: false,
+    mapTypeControl: false,
+    scaleControl: false,
+    streetViewControl: false,
+    // rotateControl: boolean,
+    fullscreenControl: false
   });
 }
 
