@@ -1,0 +1,79 @@
+
+main {
+  width: 100%;
+  height: 100%;
+}
+
+header {
+}
+
+h1, h2, h3 {
+  text-align: right;
+  display: none;
+}
+
+section {
+  padding: 10px 30px;
+  width: 100%;
+}
+
+#left {
+  width: 30%;
+  float: left;
+  position: relative;
+  height: 100%;
+}
+
+#left #centerline {
+  position: absolute;;
+  top: 0;
+  right: 40%;
+  border-right: 1px solid #000;
+  width: 30%;
+  height: 100%;
+  z-index: -1;
+}
+
+h4 {
+  border: 1px solid #000;
+  width: 35px;
+  padding: 5px;
+}
+
+/*ここから日本中心一覧の各記事調整*/
+#left dd {
+  text-align: right;
+}
+
+#left svg {
+  height: 200px;
+}
+
+/*土地*/
+#left #land dd:nth-child(1) svg {
+  margin-left:100px;
+}
+
+/*衣食*/
+#left #foodcloth dd:nth-child(1) svg {
+  margin-left:70px;
+}
+
+/*生活*/
+#left #life dd:nth-child(1) svg {
+  margin-left:120px;
+}
+
+#right {
+  width: 70%;
+  float: right;
+  position: relative;
+}
+
+#rightinner{
+  position: fixed;
+}
+
+footer {
+  clear: both;
+}
