@@ -39,7 +39,7 @@ function createMap(){
 
 //jsonファイルの読み込み
 function getJsonfile(){
-  return fetch("/assets/json/pref_20180210_2.json", {
+  return fetch("/assets/json/pref.json", {
     method: "GET",
     credentials: "same-origin",
     mode: "cors"    
