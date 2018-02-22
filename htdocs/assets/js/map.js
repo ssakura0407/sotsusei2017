@@ -28,18 +28,24 @@ function initialize() {
   });
 }
 
-//マップの作成
+//マップの作成・設定
 function createMap(){
   var glatlng = {lat: 38.13787471840729, lng: 136.903515625};
   map = new google.maps.Map(document.getElementById('map'), {
     zoom: 5,
     center: glatlng,
-    zoomControl: false,
+    // zoomControl: false,
     mapTypeControl: false,
     scaleControl: false,
     streetViewControl: false,
     // rotateControl: boolean,
     fullscreenControl: false
+  });
+
+  map.addListener('center_changed', function() {
+    window.setTimeout(function(){
+      map.panTo(glatlng);
+    }, 3000);
   });
 }
 
