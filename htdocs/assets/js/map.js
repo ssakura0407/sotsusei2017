@@ -1,6 +1,7 @@
 var map; //googlemapのオブジェクト
 var json; //緯度経度格納jsonファイル
 var data; //マーカーの情報
+var styledMapType; //マーカーのスタイル設定
 var marker = {}; //マーカーのオブジェクト
 var prefMarker = {}; //都道府県マーカーのオブジェクト
 var iconBase; //アイコン画像のバス
@@ -30,7 +31,7 @@ function initialize() {
 
 //マップの作成・設定
 function createMap(){
-  var glatlng = {lat: 38.13787471840729, lng: 136.903515625};
+  var glatlng = {lat: 35.1307, lng: 136.0807};
   map = new google.maps.Map(document.getElementById('map'), {
     zoom: 5,
     center: glatlng,
@@ -41,6 +42,8 @@ function createMap(){
     // rotateControl: boolean,
     fullscreenControl: false
   });
+  map.mapTypes.set('styled_map', styledMapType);
+  map.setMapTypeId('styled_map');
 
   map.addListener('center_changed', function() {
     window.setTimeout(function(){
@@ -226,6 +229,41 @@ function setData(){
     pollution: { cat: "culture", title: "公害苦情件数（人口10万人当たり）の重心地", text: "公害苦情件数の重心地", latSum: 0, lngSum: 0, sum: 0 }
   };
 
+  styledMapType = new google.maps.StyledMapType([
+  { "featureType": "administrative.land_parcel",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "administrative.neighborhood",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "administrative.province",
+    "elementType": "geometry.stroke",
+    "stylers": [{ "color": "#333333" }, { "weight": 1 }] },
+  { "featureType": "administrative.locality",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "poi",
+    "elementType": "labels.text",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "poi.business",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road",
+    "elementType": "labels",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road",
+    "elementType": "labels.icon",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "transit",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "water",
+    "elementType": "geometry",
+    "stylers": [{ "color": "#add8e6" }] },
+  { "featureType": "water",
+    "elementType": "labels.text",
+    "stylers": [{ "visibility": "off" }] },
+  { "featureType": "water",
+    "elementType": "labels.text.fill",
+    "stylers": [{ "color": "#9e9e9e" }] }
+  ], {name: 'Styled Map'});
 }
 
 //アイコン画像の設定
