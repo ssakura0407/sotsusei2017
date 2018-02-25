@@ -1,15 +1,17 @@
 var map; //googlemapのオブジェクト
 var json; //緯度経度格納jsonファイル
-var data; //マーカーの情報
+var centerData = {}; //分野ごとの重心地のデータ
+var data; //各データの重心地
 var styledMapType; //マーカーのスタイル設定
 var marker = {}; //マーカーのオブジェクト
 var prefMarker = {}; //都道府県マーカーのオブジェクト
 var iconBase; //アイコン画像のバス
-var icons; //アイコン画像の設定
+var cats; //カテゴリの設定
+var glatlng = {lat: 35.34309245582935, lng: 137.1177203049981}; //マップの中心地
 
 function initialize() {
-  //アイコン画像の設定
-  setIcon();
+  //カテゴリ・アイコン画像の設定
+  setCat();
   
   //プロットする要素の設定
   setData();
@@ -20,10 +22,16 @@ function initialize() {
   //jsonファイルの読み込み
   getJsonfile()
   .then(() => {
+  
     //マーカーのプロット処理
     setMarker();
+  }).then(() => {
+
     //ボタンの表示切り替え設定
     setBtnView();
+
+    //表示するデータの設定
+    setZoomData();
   }).catch((e) => {
     console.error(e);
   });
@@ -31,7 +39,6 @@ function initialize() {
 
 //マップの作成・設定
 function createMap(){
-  var glatlng = {lat: 35.1307, lng: 136.0807};
   map = new google.maps.Map(document.getElementById('map'), {
     zoom: 5,
     center: glatlng,
@@ -42,14 +49,26 @@ function createMap(){
     // rotateControl: boolean,
     fullscreenControl: false
   });
+  // スタイル設定
   map.mapTypes.set('styled_map', styledMapType);
   map.setMapTypeId('styled_map');
 
-  map.addListener('center_changed', function() {
+  // 表示範囲の設定
+  map.addListener('dragend', function(){
+    var center = map.getCenter();
+    if(22.4353 <= center.lat() && center.lat() <= 46.1895 &&
+       121.3590 <= center.lng() && center.lng() <= 151.2857) return;
+    //日本の範囲外であれば3秒後に中心地に戻す
     window.setTimeout(function(){
       map.panTo(glatlng);
-    }, 3000);
+    }, 100);
   });
+
+    var kesu1 = new google.maps.Marker({ position: {lat: 46.1895, lng: 121.3590}, map: map });
+    var kesu2 = new google.maps.Marker({ position: {lat: 46.1895, lng: 151.2857}, map: map });
+    var kesu3 = new google.maps.Marker({ position: {lat: 22.4353, lng: 121.3590}, map: map });
+    var kesu2 = new google.maps.Marker({ position: {lat: 22.4353, lng: 151.2857}, map: map });
+
 }
 
 //jsonファイルの読み込み
@@ -67,11 +86,13 @@ function getJsonfile(){
       // var addr = json[i].addr;
       var lat = json[i].lat;
       var lng = json[i].lng;
+      var cat = json[i].cat;
       //重心は重さをもたないため緯度経度のみで計算する
-      json[i].center = 1;
+      json[i].prefcenter = 1;
 
       //合計するために+する
       Object.keys(data).forEach(function(val){
+        //各データの重心地
         data[val].latSum += lat * json[i][val];
         data[val].lngSum += lng * json[i][val];
         data[val].sum += json[i][val];
@@ -98,35 +119,56 @@ function setPrefMarker(){
       position: {lat: lat, lng: lng},
       map: map,
       title: pref,
-      icon: icons["prefecture"].icon,
+      icon: cats["prefecture"].icon,
+      zIndex: 1
     });
   }
 }
 
 //各データのマーカーをプロットする
 function setDataMarker(){
-  Object.keys(data).forEach(function(val){
+  //全データの重心地
+  centerData["total"] = { latSum: 0, lngSum: 0, sum: 0 };
+  marker["total"] = {};
+
+  Object.keys(data).forEach(function(val,i){
+    //全てのデータのプロットをする
     marker[val] = {};
-    marker[val].plot = new google.maps.Marker({
-      position: {lat: data[val].latSum/data[val].sum, lng: data[val].lngSum/data[val].sum},
-      map: map,
-      title: data[val].title,
-      icon: icons[data[val].cat].icon
-    });
-    marker[val].window = setTextContent(data[val].title, data[val].text);
-    marker[val].plot.addListener('mouseover',function(){
-      marker[val].window.open(map, marker[val].plot);
-    });
-    marker[val].plot.addListener('mouseout',function(){
-      marker[val].window.close(map, marker[val].plot);
-    });
+    plotMarker(val, data[val].latSum/data[val].sum, data[val].lngSum/data[val].sum, 
+      data[val].title, cats[data[val].cat].icon, data[val].text, 2);
+    //分野ごとの重心地を計算する
+    if(!centerData[data[val].cat]) centerData[data[val].cat] = { latSum: 0, lngSum: 0, sum: 0 };
+    if(data[val].latSum) centerData[data[val].cat].latSum += data[val].latSum;
+    if(data[val].lngSum) centerData[data[val].cat].lngSum += data[val].lngSum;
+    if(data[val].sum) centerData[data[val].cat].sum += data[val].sum;
+
+    //重心地計算終了後
+    if((Object.keys(data).length-1)==i){
+      //全分野の重心地データから1つの重心地を求める
+      Object.keys(centerData).forEach(function(val2,i2){
+        centerData.total.latSum += centerData[val2].latSum;
+        centerData.total.lngSum += centerData[val2].lngSum;
+        centerData.total.sum += centerData[val2].sum;
+
+        //分野の重心地をプロットする
+        marker[val2] = {};
+        if(val2!="prefecture" && val2!="total") plotMarker(val2, centerData[val2].latSum/centerData[val2].sum, centerData[val2].lngSum/centerData[val2].sum, 
+            cats[val2].title, cats[val2].icon, cats[val2].text, 3);
+
+        //全分野の重心地から求めた重心地をプロットする
+        if((Object.keys(centerData).length-1)==i2){
+          plotMarker("total", centerData.total.latSum/centerData.total.sum, centerData.total.lngSum/centerData.total.sum, 
+            "日本の重心地 -首都-", cats.center.icon, "全分野の重心地から取得した重心地", 4);
+        }
+      });
+    }
   });
 }
 
 function setBtnView(){
   //重心地切り替えボタン
   var btnCenter = document.getElementById("center");
-  btnCenter.onclick = () => { changeView("center"); };
+  btnCenter.onclick = () => { changeCatDataView("center"); };
 
   //県の重心地切り替えボタン
   var btnPrefecture = document.getElementById("prefecture");
@@ -134,51 +176,131 @@ function setBtnView(){
 
   //土地の重心地切り替えボタン
   var btnLand = document.getElementById("land");
-  btnLand.onclick = () => { changeView("land"); };
+  btnLand.onclick = () => { changeCatDataView("land"); };
 
   //文化の重心地切り替えボタン
   var btnCulture = document.getElementById("culture");
-  btnCulture.onclick = () => { changeView("culture"); };
+  btnCulture.onclick = () => { changeCatDataView("culture"); };
 
   //店舗数の重心地切り替えボタン
   var btnStore = document.getElementById("store");
-  btnStore.onclick = () => { changeView("store"); };
+  btnStore.onclick = () => { changeCatDataView("store"); };
 
   //重心地切り替えボタン
   var btnHave = document.getElementById("have");
-  btnHave.onclick = () => { changeView("have"); };
-
+  btnHave.onclick = () => { changeCatDataView("have"); };
 }
 
-function changeView(cat){
-  if(icons[cat].view == true){
-    Object.keys(data).forEach(function(val){
-      if(data[val].cat == cat){
-        marker[val].plot.setMap(null);
-        icons[cat].view = false;
+//ズーム度合いによって見せるデータを変える処理
+function setZoomData(){
+  //最初は重心地以外のデータを非表示にする
+  changeCatView(["total"], true);
+  changeCatDataView([], true);
+
+  //重心地をクリックしたら他の分野の重心地を表示する
+  marker["total"].plot.addListener('click',function(){
+    map.setZoom(7);
+    map.panTo(glatlng);
+    changeCatView(["center","land","culture","store","have"], true);
+  });
+  marker["total"].plot.addListener('rightclick',function(){
+    map.setZoom(5);
+    map.panTo(glatlng);
+    changeCatView(["total"], true);
+    changeCatDataView([], true);
+  });
+
+  Object.keys(centerData).forEach(function(val,i){
+    //分野の重心地の選択処理
+    if(val!="prefecture" && val!="total"){
+      marker[val].plot.addListener('click',function(){
+        map.setZoom(8);
+        map.panTo(marker[val].plot.getPosition());
+        changeCatView([], true);
+        changeCatDataView([val], true);
+      });
+
+      marker[val].plot.addListener('rightclick',function(){
+        map.setZoom(5);
+        map.panTo(glatlng);
+        changeCatView(["total"], true);
+        changeCatDataView([], true);
+      });
+    }
+  });
+
+  Object.keys(data).forEach(function(val,i){
+    var backFlg = true;
+    //各データの重心地　選択処理
+    marker[val].plot.addListener('click',function(){
+      console.log("詳細データを見せる予定　click");
+      console.log(val);
+      map.setZoom(5);
+      map.panTo(glatlng);
+      changeDataDetailView([val], true);
+      backFlg = false;
+
+      //都道府県ごとのデータを見せる処理
+
+    });
+
+    marker[val].plot.addListener('rightclick',function(){
+            console.log(backFlg);
+
+      if(backFlg){
+        console.log("詳細データから戻る　rightclick");
+        map.setZoom(7);
+        map.panTo(glatlng);
+        changeCatView(["center","land","culture","store","have"], true);
+        changeCatDataView([], true);
+        backFlg = false;
+      } else {
+        console.log("詳細データから戻る　rClick");
+        console.log(data[val].cat);
+        map.setZoom(8);
+        map.panTo(marker[val].plot.getPosition());
+        changeCatView([], true);
+        changeCatDataView([data[val].cat], true);
+        backFlg = true;
       }
     });
-  } else {
-    Object.keys(data).forEach(function(val){
-      if(data[val].cat == cat){
-        marker[val].plot.setMap(map);
-        icons[cat].view = true;
-      }
-    });
-  }
-  console.log("click btn");
+
+  });
 }
 
-function changeViewPref(){
-  if(icons["prefecture"].view == true){
-    Object.keys(prefMarker).forEach(function(val){
-      prefMarker[val].setMap(null);
-      icons["prefecture"].view = false;
-    });
-  } else {
+//カテゴリごとの重心地の表示切り替え処理　指定したカテゴリピンのみ表示・非表示を切り替える
+function changeCatView(c, isView){
+  Object.keys(centerData).forEach(function(val){
+    if(c.includes(val)) isView? marker[val].plot.setMap(map) : marker[val].plot.setMap(null);
+    else isView? marker[val].plot.setMap(null) : marker[val].plot.setMap(map);
+  });
+};
+
+//カテゴリピンの表示切り替え処理
+function changeCatDataView(c, isView){
+  Object.keys(data).forEach(function(val){
+    if(c.includes(data[val].cat)) isView? marker[val].plot.setMap(map) : marker[val].plot.setMap(null);
+    else isView? marker[val].plot.setMap(null) : marker[val].plot.setMap(map);
+  });
+}
+
+//各データごとの表示切り替え処理
+function changeDataDetailView(d, isView){
+  Object.keys(data).forEach(function(val){
+    if(d.includes(val)) isView? marker[val].plot.setMap(map) : marker[val].plot.setMap(null);
+    else isView? marker[val].plot.setMap(null) : marker[val].plot.setMap(map);
+  });
+}
+
+//都道府県重心地の表示切り替え処理
+function changeViewPref(isView){
+  if(isView){ //trueなら表示
     Object.keys(prefMarker).forEach(function(val){
       prefMarker[val].setMap(map);
-      icons["prefecture"].view = true;
+    });
+  } else { //falseなら非表示
+    Object.keys(prefMarker).forEach(function(val){
+      prefMarker[val].setMap(null);
     });
   }
 }
@@ -186,7 +308,7 @@ function changeViewPref(){
 function setData(){
   //データの分類設定
   data = {
-    center: { cat: "center", title: "重心地", text: "土地の重心地", latSum: 0, lngSum: 0, sum: 0 },
+    prefcenter: { cat: "center", title: "重心地", text: "土地の重心地", latSum: 0, lngSum: 0, sum: 0 },
     people: { cat: "center", title: "人口重心地", text: "人口の重心地", latSum: 0, lngSum: 0, sum: 0 },
     prefpro: { cat: "center", title: "県内総生産重心地", text: "県内総生産の重心地", latSum: 0, lngSum: 0, sum: 0 },
     // quake: { title: "震度５弱以上を観測した地震の県重心地重心地", text: "震度５弱以上の地震が発生した重心地", latSum: 0, lngSum: 0, sum: 0 },
@@ -229,53 +351,54 @@ function setData(){
     pollution: { cat: "culture", title: "公害苦情件数（人口10万人当たり）の重心地", text: "公害苦情件数の重心地", latSum: 0, lngSum: 0, sum: 0 }
   };
 
+  //マップの表示スタイル設定
   styledMapType = new google.maps.StyledMapType([
-  { "featureType": "administrative.land_parcel",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "administrative.neighborhood",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "administrative.province",
-    "elementType": "geometry.stroke",
-    "stylers": [{ "color": "#333333" }, { "weight": 1 }] },
-  { "featureType": "administrative.locality",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "poi",
-    "elementType": "labels.text",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "poi.business",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "road",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "road",
-    "elementType": "labels",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "road",
-    "elementType": "labels.icon",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "transit",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "water",
-    "elementType": "geometry",
-    "stylers": [{ "color": "#add8e6" }] },
-  { "featureType": "water",
-    "elementType": "labels.text",
-    "stylers": [{ "visibility": "off" }] },
-  { "featureType": "water",
-    "elementType": "labels.text.fill",
-    "stylers": [{ "color": "#9e9e9e" }] }
+  { "featureType": "administrative.land_parcel", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "administrative.neighborhood", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "administrative.province", "elementType": "geometry.stroke", "stylers": [{ "color": "#333333" }, { "weight": 1 }] },
+  // { "featureType": "administrative.locality", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "landscape", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "poi", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "poi.business", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "road", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "transit", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#add8e6" }] },
+  { "featureType": "water", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] }
   ], {name: 'Styled Map'});
 }
 
-//アイコン画像の設定
-function setIcon(){
+//マーカーを作成する
+function plotMarker(val, lat, lng, title, iconimg, text, zindex){
+  marker[val].plot = new google.maps.Marker({
+    position: {lat: lat, lng: lng},
+    map: map,
+    title: title,
+    icon: iconimg,
+    zIndex: zindex
+  });
+  marker[val].window = setTextContent(title, text);
+  marker[val].plot.addListener('mouseover',function(){
+    marker[val].window.open(map, marker[val].plot);
+  });
+  marker[val].plot.addListener('mouseout',function(){
+    marker[val].window.close(map, marker[val].plot);
+  });
+}
+
+//カテゴリの設定
+function setCat(){
   iconBase = '/assets/img/mapicon/';
-  icons = {
-    prefecture: { icon: iconBase + 'prefecture.png', view: true },
-    center: { icon: iconBase + 'center.png', view: true },
-    land: { icon: iconBase + 'land.png', view: true },
-    culture: { icon: iconBase + 'culture.png', view: true },
-    store: { icon: iconBase + 'store.png', view: true },
-    have: { icon: iconBase + 'have.png', view: true }
+  cats = {
+    total: { icon: iconBase + 'center.png', title:'', text:'' },
+    prefecture: { icon: iconBase + 'prefecture.png', title:'都道府県一覧', text:'' },
+    center: { icon: iconBase + 'center.png', title:'人口重心地', text:'' },
+    land: { icon: iconBase + 'land.png', title:'土地の重心地', text:'' },
+    culture: { icon: iconBase + 'culture.png', title:'文化の重心地', text:'' },
+    store: { icon: iconBase + 'store.png', title:'店舗数の重心地', text:'' },
+    have: { icon: iconBase + 'have.png', title:'物の所有数', text:'' }
   };
 }
 
