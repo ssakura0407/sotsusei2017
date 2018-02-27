@@ -119,7 +119,7 @@ function setPrefMarker(){
       position: {lat: lat, lng: lng},
       map: map,
       title: pref,
-      icon: cats["prefecture"].icon,
+      icon: cats.prefecture.icon,
       zIndex: 1
     });
   }
@@ -197,71 +197,43 @@ function setZoomData(){
   changeCatView(["total"], true);
   changeCatDataView([], true);
 
-  //重心地をクリックしたら他の分野の重心地を表示する
+  //全体重心地をクリックしたら他の分野の重心地を表示する
   marker["total"].plot.addListener('click',function(){
-    map.setZoom(7);
-    map.panTo(glatlng);
-    changeCatView(["center","land","culture","store","have"], true);
-  });
-  marker["total"].plot.addListener('rightclick',function(){
-    map.setZoom(5);
-    map.panTo(glatlng);
-    changeCatView(["total"], true);
-    changeCatDataView([], true);
+    moveCenterPlace("分野ごとの重心地");
   });
 
-  Object.keys(centerData).forEach(function(val,i){
+  Object.keys(centerData).forEach(function(val){
     //分野の重心地の選択処理
     if(val!="prefecture" && val!="total"){
       marker[val].plot.addListener('click',function(){
-        map.setZoom(8);
-        map.panTo(marker[val].plot.getPosition());
-        changeCatView([], true);
-        changeCatDataView([val], true);
+        moveCenterPlace("分野の重心地データ一覧",val);
       });
-
       marker[val].plot.addListener('rightclick',function(){
-        map.setZoom(5);
-        map.panTo(glatlng);
-        changeCatView(["total"], true);
-        changeCatDataView([], true);
+        moveCenterPlace("全体重心地");
       });
     }
   });
 
-  Object.keys(data).forEach(function(val,i){
-    var backFlg = true;
+  Object.keys(data).forEach(function(val){
+    var nowDisplay = "catData";
     //各データの重心地　選択処理
     marker[val].plot.addListener('click',function(){
-      console.log("詳細データを見せる予定　click");
-      console.log(val);
-      map.setZoom(5);
-      map.panTo(glatlng);
-      changeDataDetailView([val], true);
-      backFlg = false;
-
-      //都道府県ごとのデータを見せる処理
-
+      if(nowDisplay=="catData"){
+        moveCenterPlace("重心地データ詳細",val);
+        nowDisplay = "dataDetail";
+      }else{
+        moveCenterPlace("分野の重心地データ一覧",data[val].cat);
+        changeDefaultPrefIcon();
+        nowDisplay = "catData";
+      }
     });
-
     marker[val].plot.addListener('rightclick',function(){
-            console.log(backFlg);
-
-      if(backFlg){
-        console.log("詳細データから戻る　rightclick");
-        map.setZoom(7);
-        map.panTo(glatlng);
-        changeCatView(["center","land","culture","store","have"], true);
-        changeCatDataView([], true);
-        backFlg = false;
+      if(nowDisplay=="catData"){
+        moveCenterPlace("分野ごとの重心地");
       } else {
-        console.log("詳細データから戻る　rClick");
-        console.log(data[val].cat);
-        map.setZoom(8);
-        map.panTo(marker[val].plot.getPosition());
-        changeCatView([], true);
-        changeCatDataView([data[val].cat], true);
-        backFlg = true;
+        moveCenterPlace("分野の重心地データ一覧",data[val].cat);
+        changeDefaultPrefIcon();
+        nowDisplay = "catData";
       }
     });
 
@@ -292,6 +264,22 @@ function changeDataDetailView(d, isView){
   });
 }
 
+//都道府県ごとのデータを見せる処理
+function changeDataDetailPrefView(val){
+  var min = data[val].min;
+  var max = data[val].max;
+  Object.keys(json).forEach(function(i){
+    var prefVal;
+    if(min == 0 && max == 0){
+      prefVal = 0;
+    } else{
+      prefVal = (json[i][val] - min) / (max / 10);
+      prefVal = (10 < Math.ceil(prefVal))? 10 : Math.ceil(prefVal);          
+    }
+    prefMarker[json[i].pref].setIcon(iconBase + '../prefectureSize/size' + prefVal + '.png');
+  });
+}
+
 //都道府県重心地の表示切り替え処理
 function changeViewPref(isView){
   if(isView){ //trueなら表示
@@ -305,50 +293,90 @@ function changeViewPref(isView){
   }
 }
 
+//都道府県の重心地のアイコンをデフォルトに戻す
+function changeDefaultPrefIcon(){
+  Object.keys(json).forEach(function(i){
+    prefMarker[json[i].pref].setIcon(cats.prefecture.icon);
+  });
+}
+
+//表示切り替え処理
+function moveCenterPlace(stage,val){
+  console.log(stage);
+  switch (stage){
+    case "全体重心地":
+      map.setZoom(5);
+      map.panTo(glatlng);
+      changeCatView(["total"], true);
+      changeCatDataView([], true);
+      break;
+    case "分野ごとの重心地":
+      map.setZoom(7);
+      map.panTo(glatlng);
+      changeCatView(["center","land","culture","store","have"], true);
+      changeCatDataView([], true);
+      break;
+    case "分野の重心地データ一覧":
+      console.log(val);
+      map.setZoom(8);
+      map.panTo(marker[val].plot.getPosition());
+      changeCatView([], true);
+      changeCatDataView([val], true);
+
+      break;
+    case "重心地データ詳細":
+      map.setZoom(5);
+      map.panTo(glatlng);
+      changeDataDetailView([val], true);
+      changeDataDetailPrefView(val);
+      break;
+  }
+}
+
 function setData(){
   //データの分類設定
   data = {
-    prefcenter: { cat: "center", title: "重心地", text: "土地の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    people: { cat: "center", title: "人口重心地", text: "人口の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    prefpro: { cat: "center", title: "県内総生産重心地", text: "県内総生産の重心地", latSum: 0, lngSum: 0, sum: 0 },
+    prefcenter: { cat: "center", title: "都道府県の重心地を点とした重心地", text: "都道府県の重心地を点とした重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    people: { cat: "center", title: "人口重心地", text: "人口の重心地", min: 570, max: 13624, latSum: 0, lngSum: 0, sum: 0 },
+    prefpro: { cat: "center", title: "県内総生産重心地", text: "県内総生産の重心地", min: 1779178, max: 94902086, latSum: 0, lngSum: 0, sum: 0 },
     // quake: { title: "震度５弱以上を観測した地震の県重心地重心地", text: "震度５弱以上の地震が発生した重心地", latSum: 0, lngSum: 0, sum: 0 },
-    traffic1: { cat: "land", title: "到達エリア面積の~1時間重心地", text: "到達エリア面積~1時間の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    traffic5: { cat: "land", title: "到達エリア面積の~5時間重心地", text: "到達エリア面積~5時間の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    traffic10: { cat: "land", title: "到達エリア面積の~10時間重心地", text: "到達エリア面積~10時間の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    forest: { cat: "land", title: "森林面積の重心地", text: "森林面積の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    admini: { cat: "culture", title: "行政基盤 財政力指数の重心地", text: "財政力指数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    museum: { cat: "culture", title: "人口100万人当たりの博物館数指標値の重心地", text: "博物館数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    vacant: { cat: "culture", title: "空き家比率（対総住宅数）の重心地", text: "空き家比率の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    recycling: { cat: "culture", title: "ごみのリサイクル率の重心地", text: "ごみのリサイクル率の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    landfill: { cat: "culture", title: "ごみ埋立率の重心地", text: "ごみ埋立率の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    finallandfill: { cat: "culture", title: "最終処分場残余容量の重心地", text: "最終処分場残余容量の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    retailstore: { cat: "store", title: "小売店数（人口千人当たり）の重心地", text: "小売店数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    foodstore: { cat: "store", title: "食品スーパーマーケットの重心地", text: "食品スーパーマーケット数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    largeretailstore: { cat: "store",  title: "大型小売店数（人口10万人当たり）の重心地", text: "大型小売店数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    department: { cat: "store",  title: "百貨店，総合スーパー数（人口10万人当たり）の重心地", text: "百貨店，総合スーパー数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    convenience: { cat: "store",  title: "コンビニエンスストア数（人口10万人当たり）の重心地", text: "コンビニエンスストア数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    restaurant: { cat: "store",  title: "飲食店数（人口千人当たり）の重心地", text: "飲食店数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    bathhouse: { cat: "store",  title: "公衆浴場数（人口10万人当たり）の重心地", text: "公衆浴場数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    municipalroad: { cat: "land", title: "市町村道舗装率（対市町村道実延長）の重心地", text: "市町村道舗装率の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    urbanparkarea: { cat: "land", title: "都市公園面積（人口１人当たり）の重心地", text: "都市公園面積の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    urbanpark: { cat: "land", title: "都市公園数(可住地面積100k㎡当たり)の重心地", text: "都市公園数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    income: { cat: "culture", title: "実収入（１世帯当たり１か月間）の重心地", text: "実収入の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    savings: { cat: "culture", title: "貯蓄現在高（１世帯当たり）の重心地", text: "貯蓄現在高の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    securities: { cat: "culture", title: "有価証券現在高割合（対貯蓄現在高）の重心地", text: "有価証券現在高割合の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    liabilities: { cat: "culture", title: "負債現在高（１世帯当たり）の重心地", text: "負債現在高の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    automobile: { cat: "have", title: "自動車所有数量（千世帯当たり）の重心地", text: "自動車所有数量の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    microwave: { cat: "have", title: "電子レンジ所有数量（千世帯当たり）の重心地", text: "電子レンジの重心地", latSum: 0, lngSum: 0, sum: 0 },
-    conditioner: { cat: "have", title: "ルームエアコン所有数量（千世帯当たり）の重心地", text: "ルームエアコン所有数量", latSum: 0, lngSum: 0, sum: 0 },
-    smartphone: { cat: "have", title: "スマートフォン所有数量（千世帯当たり）の重心地", text: "スマートフォン所有数量の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    computer: { cat: "have", title: "パソコン所有数量（千世帯当たり）の重心地", text: "パソコン所有数量の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    firestation: { cat: "culture", title: "消防署数(可住地面積100k㎡当たり)の重心地", text: "消防署数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    firefighter: { cat: "culture", title: "消防吏員数（人口10万人当たり）の重心地", text: "消防吏員数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    firefire: { cat: "culture", title: "火災出火件数（人口10万人当たり）の重心地", text: "火災出火件数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    buildingfire: { cat: "culture", title: "建物火災出火件数（人口10万人当たり）の重心地", text: "建物火災出火件数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    trafficaccident: { cat: "culture", title: "交通事故発生件数（人口10万人当たり）の重心地", text: "交通事故発生件数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    policestation: { cat: "culture", title: "警察署・交番・駐在所数(可住地面積100k㎡当たり)の重心地", text: "警察署・交番・駐在所数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    policeman: { cat: "culture", title: "警察官数（人口千人当たり）の重心地", text: "警察官数の重心地", latSum: 0, lngSum: 0, sum: 0 },
-    pollution: { cat: "culture", title: "公害苦情件数（人口10万人当たり）の重心地", text: "公害苦情件数の重心地", latSum: 0, lngSum: 0, sum: 0 }
+    traffic1: { cat: "land", title: "到達エリア面積の~1時間重心地", text: "到達エリア面積~1時間の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    traffic5: { cat: "land", title: "到達エリア面積の~5時間重心地", text: "到達エリア面積~5時間の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    traffic10: { cat: "land", title: "到達エリア面積の~10時間重心地", text: "到達エリア面積~10時間の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    forest: { cat: "land", title: "森林面積の重心地", text: "森林面積の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    admini: { cat: "culture", title: "行政基盤 財政力指数の重心地", text: "財政力指数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    museum: { cat: "culture", title: "人口100万人当たりの博物館数指標値の重心地", text: "博物館数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    vacant: { cat: "culture", title: "空き家比率（対総住宅数）の重心地", text: "空き家比率の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    recycling: { cat: "culture", title: "ごみのリサイクル率の重心地", text: "ごみのリサイクル率の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    landfill: { cat: "culture", title: "ごみ埋立率の重心地", text: "ごみ埋立率の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    finallandfill: { cat: "culture", title: "最終処分場残余容量の重心地", text: "最終処分場残余容量の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    retailstore: { cat: "store", title: "小売店数（人口千人当たり）の重心地", text: "小売店数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    foodstore: { cat: "store", title: "食品スーパーマーケットの重心地", text: "食品スーパーマーケット数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    largeretailstore: { cat: "store",  title: "大型小売店数（人口10万人当たり）の重心地", text: "大型小売店数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    department: { cat: "store",  title: "百貨店，総合スーパー数（人口10万人当たり）の重心地", text: "百貨店，総合スーパー数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    convenience: { cat: "store",  title: "コンビニエンスストア数（人口10万人当たり）の重心地", text: "コンビニエンスストア数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    restaurant: { cat: "store",  title: "飲食店数（人口千人当たり）の重心地", text: "飲食店数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    bathhouse: { cat: "store",  title: "公衆浴場数（人口10万人当たり）の重心地", text: "公衆浴場数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    municipalroad: { cat: "land", title: "市町村道舗装率（対市町村道実延長）の重心地", text: "市町村道舗装率の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    urbanparkarea: { cat: "land", title: "都市公園面積（人口１人当たり）の重心地", text: "都市公園面積の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    urbanpark: { cat: "land", title: "都市公園数(可住地面積100k㎡当たり)の重心地", text: "都市公園数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    income: { cat: "culture", title: "実収入（１世帯当たり１か月間）の重心地", text: "実収入の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    savings: { cat: "culture", title: "貯蓄現在高（１世帯当たり）の重心地", text: "貯蓄現在高の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    securities: { cat: "culture", title: "有価証券現在高割合（対貯蓄現在高）の重心地", text: "有価証券現在高割合の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    liabilities: { cat: "culture", title: "負債現在高（１世帯当たり）の重心地", text: "負債現在高の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    automobile: { cat: "have", title: "自動車所有数量（千世帯当たり）の重心地", text: "自動車所有数量の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    microwave: { cat: "have", title: "電子レンジ所有数量（千世帯当たり）の重心地", text: "電子レンジの重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    conditioner: { cat: "have", title: "ルームエアコン所有数量（千世帯当たり）の重心地", text: "ルームエアコン所有数量", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    smartphone: { cat: "have", title: "スマートフォン所有数量（千世帯当たり）の重心地", text: "スマートフォン所有数量の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    computer: { cat: "have", title: "パソコン所有数量（千世帯当たり）の重心地", text: "パソコン所有数量の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    firestation: { cat: "culture", title: "消防署数(可住地面積100k㎡当たり)の重心地", text: "消防署数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    firefighter: { cat: "culture", title: "消防吏員数（人口10万人当たり）の重心地", text: "消防吏員数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    firefire: { cat: "culture", title: "火災出火件数（人口10万人当たり）の重心地", text: "火災出火件数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    buildingfire: { cat: "culture", title: "建物火災出火件数（人口10万人当たり）の重心地", text: "建物火災出火件数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    trafficaccident: { cat: "culture", title: "交通事故発生件数（人口10万人当たり）の重心地", text: "交通事故発生件数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    policestation: { cat: "culture", title: "警察署・交番・駐在所数(可住地面積100k㎡当たり)の重心地", text: "警察署・交番・駐在所数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    policeman: { cat: "culture", title: "警察官数（人口千人当たり）の重心地", text: "警察官数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 },
+    pollution: { cat: "culture", title: "公害苦情件数（人口10万人当たり）の重心地", text: "公害苦情件数の重心地", min: 0, max: 0, latSum: 0, lngSum: 0, sum: 0 }
   };
 
   //マップの表示スタイル設定
