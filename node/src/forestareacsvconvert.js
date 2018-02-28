@@ -8,7 +8,7 @@ let csvfile = fs.readFileSync(file);
 var json = JSON.parse(fs.readFileSync('src/json/forestpref.json', 'utf8'));
 let csvData = csvSync(csvfile);
 
-var data = json["marker"].map(function(jsonElement, jsonIndex) {
+var data = json.map(function(jsonElement, jsonIndex) {
   // console.log(jsonElement);
   // console.log("---\n");
   // console.log("14:"+jsonElement["pref"]);
