@@ -8,6 +8,8 @@ var prefMarker = {}; //都道府県マーカーのオブジェクト
 var iconBase; //アイコン画像のバス
 var cats; //カテゴリの設定
 var glatlng = {lat: 35.34309245582935, lng: 137.1177203049981}; //マップの中心地
+var btn = {};
+
 
 function initialize() {
   //カテゴリ・アイコン画像の設定
@@ -152,7 +154,6 @@ function setDataMarker(){
 
         //分野の重心地をプロットする
         marker[val2] = {};
-        console.log(val2);
         if(val2!="prefecture" && val2!="total") plotMarker(val2, centerData[val2].latSum/centerData[val2].sum, centerData[val2].lngSum/centerData[val2].sum, 
             cats[val2].title, cats[val2].icon, cats[val2].text, 3);
 
@@ -167,29 +168,21 @@ function setDataMarker(){
 }
 
 function setBtnView(){
-  //重心地切り替えボタン
-  var btnCenter = document.getElementById("center");
-  btnCenter.onclick = () => { changeCatDataView("center"); };
+  //全体重心地切り替えボタン
+  btn.stage1 = document.getElementById("stage1");
+  btn.stage1.onclick = () => { moveCenterPlace("全体重心地"); };
 
-  //県の重心地切り替えボタン
-  var btnPrefecture = document.getElementById("prefecture");
-  btnPrefecture.onclick = () => { changeViewPref(); };
+  //分野ごとの重心地切り替えボタン
+  btn.stage2 = document.getElementById("stage2");
+  btn.stage2.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
 
   //土地の重心地切り替えボタン
-  var btnLand = document.getElementById("land");
-  btnLand.onclick = () => { changeCatDataView("land"); };
+  btn.stage3 = document.getElementById("stage3");
+  btn.stage3.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
 
   //文化の重心地切り替えボタン
-  var btnCulture = document.getElementById("culture");
-  btnCulture.onclick = () => { changeCatDataView("culture"); };
-
-  //店舗数の重心地切り替えボタン
-  var btnStore = document.getElementById("store");
-  btnStore.onclick = () => { changeCatDataView("store"); };
-
-  //重心地切り替えボタン
-  var btnHave = document.getElementById("have");
-  btnHave.onclick = () => { changeCatDataView("have"); };
+  btn.stage4 = document.getElementById("stage4");
+  btn.stage4.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
 }
 
 //ズーム度合いによって見せるデータを変える処理
@@ -265,6 +258,8 @@ function changeDataDetailView(d, isView){
   });
 }
 
+
+
 //都道府県ごとのデータを見せる処理
 function changeDataDetailPrefView(val){
   var min = data[val].min;
@@ -301,6 +296,14 @@ function changeDefaultPrefIcon(){
   });
 }
 
+//ボタンの表示切り替え
+function changeBtn(stage){
+  Object.keys(btn).map(function(i){
+    btn[i].style.background = (stage==i)? "#333" : "#FFF";
+    btn[i].style.color = (stage==i)? "#DDD" : "#000";
+  });
+}
+
 //表示切り替え処理
 function moveCenterPlace(stage,val){
   switch (stage){
@@ -309,24 +312,28 @@ function moveCenterPlace(stage,val){
       map.panTo(glatlng);
       changeCatView(["total"], true);
       changeCatDataView([], true);
+      changeBtn("stage1");
       break;
     case "分野ごとの重心地":
       map.setZoom(7);
       map.panTo(glatlng);
       changeCatView(["population", "land", "amusement", "economy", "traffic", "life"], true);
       changeCatDataView([], true);
+      changeBtn("stage2");
       break;
     case "分野の重心地データ一覧":
       map.setZoom(8);
       map.panTo(marker[val].plot.getPosition());
       changeCatView([], true);
       changeCatDataView([val], true);
+      changeBtn("stage3");
       break;
     case "重心地データ詳細":
       map.setZoom(5);
       map.panTo(glatlng);
       changeDataDetailView([val], true);
       changeDataDetailPrefView(val);
+      changeBtn("stage4");
       break;
   }
 }
@@ -403,7 +410,6 @@ function setData(){
 
 //マーカーを作成する
 function plotMarker(val, lat, lng, title, iconimg, text, zindex){
-  console.log(val);
   marker[val].plot = new google.maps.Marker({
     position: {lat: lat, lng: lng},
     map: map,

@@ -10,6 +10,23 @@ body {
 
 #btn {
   position: absolute;
-  top: 10px;
-  left: 20px;
+  top: 0px;
+  left: 0px;
+  width: 15%;
+  font-size: 15px;
+}
+
+#btn button {
+  color: #000;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 15px 10px;
+  background: #fff;
+  border: 1px solid #888;
+  margin-top: -1px;
+}
+
+#btn button:hover {
+  color: #888;
 }
