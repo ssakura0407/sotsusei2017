@@ -9,6 +9,7 @@ var iconBase; //アイコン画像のバス
 var cats; //カテゴリの設定
 var glatlng = {lat: 35.34309245582935, lng: 137.1177203049981}; //マップの中心地
 var btn = {};
+var btnView = {};
 
 
 function initialize() {
@@ -66,10 +67,10 @@ function createMap(){
     }, 100);
   });
 
-    var kesu1 = new google.maps.Marker({ position: {lat: 46.1895, lng: 121.3590}, map: map });
-    var kesu2 = new google.maps.Marker({ position: {lat: 46.1895, lng: 151.2857}, map: map });
-    var kesu3 = new google.maps.Marker({ position: {lat: 22.4353, lng: 121.3590}, map: map });
-    var kesu2 = new google.maps.Marker({ position: {lat: 22.4353, lng: 151.2857}, map: map });
+    // var kesu1 = new google.maps.Marker({ position: {lat: 46.1895, lng: 121.3590}, map: map });
+    // var kesu2 = new google.maps.Marker({ position: {lat: 46.1895, lng: 151.2857}, map: map });
+    // var kesu3 = new google.maps.Marker({ position: {lat: 22.4353, lng: 121.3590}, map: map });
+    // var kesu2 = new google.maps.Marker({ position: {lat: 22.4353, lng: 151.2857}, map: map });
 
 }
 
@@ -168,21 +169,28 @@ function setDataMarker(){
 }
 
 function setBtnView(){
+  //使い方ボタン
+  btn.howto = document.getElementById("btnHowto");
+  btn.howtoRemove = document.getElementById("btnHowtoRemove");
+  btn.howto.onclick = () => { displayHowto(); };
+  btn.howtoRemove.onclick = () => { displayHowto(); };
+  btnView.howto = document.getElementById("howto");
+
   //全体重心地切り替えボタン
-  btn.stage1 = document.getElementById("stage1");
-  btn.stage1.onclick = () => { moveCenterPlace("全体重心地"); };
+  // btn.stage1 = document.getElementById("stage1");
+  // btn.stage1.onclick = () => { moveCenterPlace("全体重心地"); };
 
-  //分野ごとの重心地切り替えボタン
-  btn.stage2 = document.getElementById("stage2");
-  btn.stage2.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
+  // //分野ごとの重心地切り替えボタン
+  // btn.stage2 = document.getElementById("stage2");
+  // btn.stage2.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
 
-  //土地の重心地切り替えボタン
-  btn.stage3 = document.getElementById("stage3");
-  btn.stage3.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
+  // //土地の重心地切り替えボタン
+  // btn.stage3 = document.getElementById("stage3");
+  // btn.stage3.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
 
-  //文化の重心地切り替えボタン
-  btn.stage4 = document.getElementById("stage4");
-  btn.stage4.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
+  // //文化の重心地切り替えボタン
+  // btn.stage4 = document.getElementById("stage4");
+  // btn.stage4.onclick = () => { moveCenterPlace("分野ごとの重心地"); };
 }
 
 //ズーム度合いによって見せるデータを変える処理
@@ -217,7 +225,6 @@ function setZoomData(){
         nowDisplay = "dataDetail";
       }else{
         moveCenterPlace("分野の重心地データ一覧",data[val].cat);
-        changeDefaultPrefIcon();
         nowDisplay = "catData";
       }
     });
@@ -226,7 +233,6 @@ function setZoomData(){
         moveCenterPlace("分野ごとの重心地");
       } else {
         moveCenterPlace("分野の重心地データ一覧",data[val].cat);
-        changeDefaultPrefIcon();
         nowDisplay = "catData";
       }
     });
@@ -304,6 +310,18 @@ function changeBtn(stage){
   });
 }
 
+//使い方表示処理
+function displayHowto(){
+  var isView=btnView.howto.getAttribute("data-visible");
+  if(isView){
+    btnView.howto.style.display = "none";
+    btnView.howto.setAttribute("data-visible", "");
+  } else {
+    btnView.howto.style.display = "block";
+    btnView.howto.setAttribute("data-visible", "1");
+  }
+}
+
 //表示切り替え処理
 function moveCenterPlace(stage,val){
   switch (stage){
@@ -313,6 +331,7 @@ function moveCenterPlace(stage,val){
       changeCatView(["total"], true);
       changeCatDataView([], true);
       changeBtn("stage1");
+      changeDefaultPrefIcon();
       break;
     case "分野ごとの重心地":
       map.setZoom(7);
@@ -320,6 +339,7 @@ function moveCenterPlace(stage,val){
       changeCatView(["population", "land", "amusement", "economy", "traffic", "life"], true);
       changeCatDataView([], true);
       changeBtn("stage2");
+      changeDefaultPrefIcon();
       break;
     case "分野の重心地データ一覧":
       map.setZoom(8);
@@ -327,6 +347,7 @@ function moveCenterPlace(stage,val){
       changeCatView([], true);
       changeCatDataView([val], true);
       changeBtn("stage3");
+      changeDefaultPrefIcon();
       break;
     case "重心地データ詳細":
       map.setZoom(5);
@@ -402,7 +423,7 @@ function setData(){
   { "featureType": "road", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
   { "featureType": "road", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
   { "featureType": "transit", "stylers": [{ "visibility": "off" }] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#add8e6" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#f0f8ff" }] },
   { "featureType": "water", "elementType": "labels.text", "stylers": [{ "visibility": "off" }] },
   { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] }
   ], {name: 'Styled Map'});

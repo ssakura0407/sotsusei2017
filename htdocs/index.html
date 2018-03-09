@@ -16,11 +16,62 @@
   </head>
   <body>
     <div id="map"></div>
-    <div id="btn">
-      <button id="stage1">全体重心地</button>
+    <nav id="btn">
+      <ul>
+        <li><h1><img src="/assets/img/title.png" alt="日本の重心地　-首都-"></h1></li>
+        <li class="btnClick"><button id="btnHowto">使い方</button></li>
+        <li class="btnClick"><button id="btnAllData">分野一覧</button></li>
+      <!--<button id="btnDataDetail">重心地データ詳細</button>-->
+<!--       <button id="stage1">全体重心地</button>
       <button id="stage2">分野ごとの重心地</button>
       <button id="stage3">分野の重心地データ一覧</button>
-      <button id="stage4">重心地データ詳細</button>
+      <button id="stage4">重心地データ詳細</button>-->
+      </ul>
+    </nav>
+    <div id="howto" data-visible="">
+      <div class="box">
+        <p class="text">データから日本の重心地を割り出しています。<br>
+        各分野の重心地とその地点から出した全分野の重心値があります。<br>
+        表示には4つの階層があり下の階層へ行くほどデータの詳細を見れるようにしています。</p>
+        <button id="btnHowtoRemove">×</button>
+        <ul>
+          <li>
+            <p>全体重心地</p>
+            <img src="/assets/img/howto/stage1.png">
+          </li>
+          <li>
+            <p>分野ごとの重心地</p>
+            <img src="/assets/img/howto/stage2.png">
+          </li>
+          <li>
+            <p>分野の重心地データ一覧</p>
+            <img src="/assets/img/howto/stage3.png">
+          </li>
+          <li>
+            <p>重心地データ詳細</p>
+            <img src="/assets/img/howto/stage4.png">
+          </li>
+        </ul>
+        <p class="clear">重心地のピンを左クリックで下の階層へ、右クリックで上の階層へ移動します。</p>
+      </div>
+    </div>
+    <div id="allData">
+      <div class="box">
+        <dl>
+          <dt class="population">人口の重心地</dt>
+          <dd>人口重心地</dd>
+          <dd>人口重心地</dd>
+          <dd>人口重心地</dd>
+          <dt class="land">人口の重心地</dt>
+          <dd>人口重心地</dd>
+          <dd>人口重心地</dd>
+          <dd>人口重心地</dd>
+          <dt class="amusement">人口の重心地</dt>
+          <dd>人口重心地</dd>
+          <dd>人口重心地</dd>
+          <dd>人口重心地</dd>
+        </dl>
+      </div>
     </div>
     <script src="/assets/js/map.js" type="text/javascript"></script>
     <script async defer
